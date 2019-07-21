@@ -1,45 +1,42 @@
 version: 2
 jobs:
   build:
-    working_directory: ~/code
+    working_directory: ~/Project/MobileAppAutomationTest
     docker:
-      - image: circleci/android:api-26-alpha
+      - image: circleci/android:api-27-alpha
     environment:
-      JVM_OPTS: -Xmx3200m
+      _JAVA_OPTIONS: "-XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Xms1024m -Xmx1536m -XX:MaxMetaspaceSize=1536m"
+      GRADLE_OPTS: '-Dorg.gradle.daemon=false -Dorg.gradle.parallel=false -Dkotlin.incremental=false -DdisablePreDex'
     steps:
       - checkout
-      - restore_cache:
-          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
+      - run:
+          name: Path
+          command: pwd
+      - run:
+          name: Chmod permissions
+          command: sudo chmod +x ./AndroidDemo/gradlew
       - run:
           name: Download Dependencies
-          command: ./gradlew androidDependencies
-      - save_cache:
-          paths:
-            - ~/.gradle
-          key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
+          command: ./AndroidDemo/gradlew dependencies
+      - run:
+          name: Accept all licences
+          command: yes | sdkmanager --licenses || exit 0 && yes | sdkmanager --update || exit 0
       - run:
           name: Setup emulator
-          command: sdkmanager "system-images;android-24;default;armeabi-v7a"
-      - run:
-          name: Create emulator
-          command: echo no | avdmanager -v create avd -n test -k "system-images;android-24;default;armeabi-v7a"
+          command: echo y | sdkmanager "platform-tools" "platforms;android-22" "emulator" "system-images;android-22;default;armeabi-v7a" && echo "no" | avdmanager create avd -n test -k "system-images;android-22;default;armeabi-v7a"
       - run:
           name: Launch emulator
-          command: export LD_LIBRARY_PATH=${ANDROID_HOME}/emulator/lib64:${ANDROID_HOME}/emulator/lib64/qt/lib && emulator64-arm -avd test -noaudio -no-boot-anim -no-window -accel auto -verbose
+          command: export LD_LIBRARY_PATH=${ANDROID_HOME}/emulator/lib64:${ANDROID_HOME}/emulator/lib64/qt/lib && emulator64-arm -avd test -noaudio -no-boot-anim -no-window -accel on -gpu off
           background: true
       - run:
           name: Wait emulator
-          command: |
-            # wait for it to have booted
+          command:  |
             circle-android wait-for-boot
-            # unlock the emulator screen
             sleep 30
             adb shell input keyevent 82
       - run:
-          name: Run Tests
-          command: ./gradlew connectedAndroidTest
+          name: Run UI Tests
+          command: cd AndroidDemo && ./gradlew connectedAndroidTest
       - store_artifacts:
-          path: app/build/reports
+          path: AndroidDemo/app/build/reports
           destination: reports
-      - store_test_results:
-          path: app/build/test-results
