@@ -1,4 +1,4 @@
-version: 3.4
+version: 3.5
 jobs:
   build:
     working_directory: ~/code
@@ -10,7 +10,7 @@ jobs:
       - checkout
       - restore_cache:
           key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
-      - run: yes | sdkmanager --licenses
+      - run: yes | sdkmanager --licenses || exit 0
       - run: yes | sdkmanager --update || exit 0
       - run:
           name: Chmod permissions #if permission for Gradlew Dependencies fail, use this.
