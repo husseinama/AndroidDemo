@@ -1,4 +1,4 @@
-version: 3.1
+version: 3.2
 jobs:
   build:
     working_directory: ~/code
@@ -20,6 +20,9 @@ jobs:
           paths:
             - ~/.gradle
           key: jars-{{ checksum "build.gradle" }}-{{ checksum  "app/build.gradle" }}
+      - run:
+          name: chmod permissions
+          command: chmod +x ./gradlew
       - run:
           name: Run Tests
           command: ./gradlew lint test
